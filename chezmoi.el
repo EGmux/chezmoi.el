@@ -212,31 +212,42 @@ With prefix ARG, save the source buffer."
 		     current-prefix-arg))
   (let ((file (if file file (buffer-file-name))))
     (if (chezmoi-target-file-p file)
-	;; File is in target state
-	(let* ((target-file file)
-	       (source-file (chezmoi-source-file target-file)))
-	  (with-current-buffer (find-file-noselect source-file)
-	    (replace-buffer-contents (find-file-noselect target-file))
-	    (if arg
-		(progn
-		  (save-buffer)
-		  (message "Wrote source: %s" source-file))
-	      (message "Wrote source (unsaved): %s" source-file))
-	    source-file))
+	    ;; File is in target state
+	    (let* ((target-file file)
+	           (source-file (chezmoi-source-file target-file)))
+	      (with-current-buffer (find-file-noselect source-file)
+	        (replace-buffer-contents (find-file-noselect target-file))
+	        (if arg
+		        (progn
+		          (save-buffer)
+		          (message "Wrote source: %s" source-file))
+	          (message "Wrote source (unsaved): %s" source-file))
+	        source-file))
 
       ;; File is in source state
       (let* ((source-file file)
-             (target-file (chezmoi-target-file source-file))
-             (cmd (format "apply %s%s"
-			  (shell-quote-argument target-file)
-			  (if arg " --force" ""))))
+             (target-file (unless (chezmoi-target-file source-file)
+                            source-file))
+             (addtarget-p (and (eq target-file source-file) arg))
+             (writefile-p (not addtarget-p))
+             (cmd (format (cond (addtarget-p
+                                 "add %s")
+                                (writefile-p
+                                 "apply %s%s"))
+			              (shell-quote-argument target-file)
+			              (if arg " --force" ""))))
         (if (chezmoi--dispatch cmd)
-	    (progn
-              (message "Wrote target: %s" target-file)
+	        (progn
+              (cond (addtarget-p
+                     (message "Added target: %s" target-file))
+                    (writefile-p
+                     (message "Wrote target: %s" target-file)))
               target-file)
           (progn
-            (message "Failed to write %s. Use chezmoi-write with prefix arg to resolve with chezmoi."
-                     target-file)
+            (cond (addtarget-p
+                   (message "Failed to add %s." target-file))
+                  (writefile-p
+                   (message "Failed to write %s. Use chezmoi-write with prefix arg to resolve with chezmoi.al." target-file)))
             nil))))))
 
 (defun chezmoi--completing-read (prompt choices category)
