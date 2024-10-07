@@ -31,6 +31,8 @@ The recording above demonstrates editing a chezmoi template with source file on 
 
   Quickly jump to the corresponding target file or source file using ~chezmoi-open-other~.
 
+  If ~chezmoi-write~ is called with prefix ARG (~C-u~) and the file is not managed by chezmoi it will then be managed. 
+
 * Functions
 
   Some functions provided are direct equivalents to common emacs functions.
